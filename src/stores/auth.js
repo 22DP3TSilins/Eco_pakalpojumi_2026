@@ -2,9 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
+// Configure axios baseURL
+axios.defaults.baseURL = 'http://localhost:3000'
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(localStorage.getItem('token') || null)
+  const initialized = ref(false)
   const isAuthenticated = computed(() => !!user.value)
 
   // Set axios default authorization header
@@ -47,6 +51,29 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const googleLogin = async (credential, clientId) => {
+    try {
+      const response = await axios.post('/api/auth/google', { credential, clientId })
+      const { token: newToken, user: userData, isNewUser } = response.data
+
+      token.value = newToken
+      user.value = userData
+
+      // Store token in localStorage
+      localStorage.setItem('token', newToken)
+
+      // Set axios default header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      return { success: true, isNewUser }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Google login failed'
+      }
+    }
+  }
+
   const logout = () => {
     user.value = null
     token.value = null
@@ -55,6 +82,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const initializeAuth = () => {
+    if (initialized.value) return
+    initialized.value = true
+    
     const storedToken = localStorage.getItem('token')
     if (storedToken) {
       try {
@@ -81,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     login,
     register,
+    googleLogin,
     logout,
     initializeAuth
   }

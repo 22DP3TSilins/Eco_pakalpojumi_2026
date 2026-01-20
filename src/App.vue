@@ -25,6 +25,11 @@ export default {
       theme: localStorage.getItem('theme') || 'light'
     }
   },
+  watch: {
+    '$route'(to, from) {
+      // Route changed, component will re-render
+    }
+  },
   mounted() {
     // Set initial theme
     const currentTheme = localStorage.getItem('theme') || 'light'
